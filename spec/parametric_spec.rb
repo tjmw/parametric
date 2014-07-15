@@ -93,6 +93,14 @@ describe Parametric do
     it 'does not include parameters marked as :nullable' do
       klass.new.params.has_key?(:nullable).should be_false
     end
+
+    it 'accepts value if validator returns true' do
+      klass.new(even_number: 2).params[:even_number].should == 2
+    end
+
+    it 'does not accept value if validator returns false' do
+      klass.new(even_number: 3).params[:even_number].should == nil
+    end
   end
 
   describe 'TypedParams' do
@@ -108,6 +116,7 @@ describe Parametric do
         string :email, 'email', match: /\w+@\w+\.\w+/
         array :emails, 'emails', match: /\w+@\w+\.\w+/, default: 'default@email.com'
         param :nullable, 'nullable param', nullable: true
+        integer :even_number, 'even number', validator: ->(n) { n.even? }
       end
     end
 
@@ -130,6 +139,7 @@ describe Parametric do
         param :emails, 'emails', match: /\w+@\w+\.\w+/, multiple: true, default: 'default@email.com'
         param :available, 'available', default: true
         param :nullable, 'nullable param', nullable: true
+        param :even_number, 'even number', validator: ->(n) { n.even? }
       end
     end
 
@@ -202,6 +212,9 @@ describe Parametric do
         subject.schema[:emails].value.should == 'default@email.com'
         subject.schema[:emails].multiple.should be_true
         subject.schema[:emails].match.should == regexp
+
+        subject.schema[:even_number].label.should == 'even number'
+        subject.schema[:even_number].value.should == ''
       end
     end
   end
