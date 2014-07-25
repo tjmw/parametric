@@ -22,15 +22,15 @@ describe Parametric do
       subject.params[:status].should == []
     end
 
-    it 'does not set value if it does not :match' do
+    it 'does not set value if it does not match regexp constraint' do
       klass.new(email: 'my@email').params[:email].should be_nil
     end
 
-    it 'does set value if it does :match' do
+    it 'does set value if it does match regexp constraint' do
       klass.new(email: 'my@email.com').params[:email].should == 'my@email.com'
     end
 
-    it 'only sets value for :multiple values that :match' do
+    it 'only sets value for :multiple values that match regexp constraint' do
       klass.new(emails: 'my@email,your,her@email.com').params[:emails].should == ['her@email.com']
     end
 
@@ -42,7 +42,7 @@ describe Parametric do
       klass.new(status: 'one,three').params[:status].should == ['one', 'three']
     end
 
-    it 'does set value if it does :match' do
+    it 'does set value if it does match regexp constraint' do
       klass.new(email: 'my@email.com').params[:email].should == 'my@email.com'
     end
 
@@ -54,7 +54,7 @@ describe Parametric do
       klass.new(email: 'my@email').params[:email].should be_nil
     end
 
-    it 'does set value if it does :match' do
+    it 'does set value if it does match regexp constraint' do
       klass.new(available: false).params[:available].should be_false
     end
 
@@ -94,12 +94,24 @@ describe Parametric do
       klass.new.params.has_key?(:nullable).should be_false
     end
 
-    it 'accepts value if validator returns true' do
-      klass.new(even_number: 2).params[:even_number].should == 2
+    context 'when a constraint is specified as a proc' do
+      it 'accepts value if constraint returns true' do
+        klass.new(even_number: 2).params[:even_number].should == 2
+      end
+
+      it 'does not accept value if constraint returns false' do
+        klass.new(even_number: 3).params[:even_number].should == nil
+      end
     end
 
-    it 'does not accept value if validator returns false' do
-      klass.new(even_number: 3).params[:even_number].should == nil
+    context 'when a constraint is specified as a symbol' do
+      it 'accepts value if sending the symbol to the param returns true' do
+        klass.new(odd_number: 1).params[:odd_number].should == 1
+      end
+
+      it 'does not accept value if sending the symbol to the param returns false' do
+        klass.new(odd_number: 2).params[:odd_number].should == nil
+      end
     end
   end
 
@@ -113,10 +125,11 @@ describe Parametric do
         array :status, 'status', options: ['one', 'two', 'three']
         array :piped_status, 'status with pipes', separator: '|'
         string :country, 'country', options: ['UK', 'CL', 'JPN']
-        string :email, 'email', match: /\w+@\w+\.\w+/
-        array :emails, 'emails', match: /\w+@\w+\.\w+/, default: 'default@email.com'
+        string :email, 'email', constraint: /\w+@\w+\.\w+/
+        array :emails, 'emails', constraint: /\w+@\w+\.\w+/, default: 'default@email.com'
         param :nullable, 'nullable param', nullable: true
-        integer :even_number, 'even number', validator: ->(n) { n.even? }
+        integer :even_number, 'even number', constraint: ->(n) { n.even? }
+        integer :odd_number, 'odd number', constraint: :odd?
       end
     end
 
@@ -135,11 +148,12 @@ describe Parametric do
         param :status, 'status', options: ['one', 'two', 'three'], multiple: true
         param :piped_status, 'status with pipes', multiple: true, separator: '|'
         param :country, 'country', options: ['UK', 'CL', 'JPN']
-        param :email, 'email', match: /\w+@\w+\.\w+/
-        param :emails, 'emails', match: /\w+@\w+\.\w+/, multiple: true, default: 'default@email.com'
+        param :email, 'email', constraint: /\w+@\w+\.\w+/
+        param :emails, 'emails', constraint: /\w+@\w+\.\w+/, multiple: true, default: 'default@email.com'
         param :available, 'available', default: true
         param :nullable, 'nullable param', nullable: true
-        param :even_number, 'even number', validator: ->(n) { n.even? }
+        param :even_number, 'even number', constraint: ->(n) { n.even? }
+        param :odd_number, 'odd number', constraint: :odd?
       end
     end
 
@@ -206,12 +220,12 @@ describe Parametric do
 
         subject.schema[:email].label.should == 'email'
         subject.schema[:email].value.should == ''
-        subject.schema[:email].match.should == regexp
+        subject.schema[:email].constraint.should == regexp
 
         subject.schema[:emails].label.should == 'emails'
         subject.schema[:emails].value.should == 'default@email.com'
         subject.schema[:emails].multiple.should be_true
-        subject.schema[:emails].match.should == regexp
+        subject.schema[:emails].constraint.should == regexp
 
         subject.schema[:even_number].label.should == 'even number'
         subject.schema[:even_number].value.should == ''

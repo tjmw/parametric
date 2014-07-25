@@ -72,18 +72,26 @@ module Parametric
       end
     end
 
-    class MatchPolicy < Policy
+    class RegexpConstraintPolicy < Policy
       def value
-        decorated.value.each_with_object([]){|a,arr| 
-          arr << a if a.to_s =~ options[:match]
+        decorated.value.each_with_object([]){|a,arr|
+          arr << a if a.to_s =~ options[:constraint]
         }
       end
     end
 
-    class ValidatorPolicy < Policy
+    class CallableConstraintPolicy < Policy
       def value
         decorated.value.each_with_object([]){|a,arr|
-          arr << a if options[:validator].call(a)
+          arr << a if options[:constraint].call(a)
+        }
+      end
+    end
+
+    class SymbolConstraintPolicy < Policy
+      def value
+        decorated.value.each_with_object([]){|a,arr|
+          arr << a if a.send(options[:constraint])
         }
       end
     end

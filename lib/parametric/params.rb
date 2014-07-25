@@ -43,14 +43,16 @@ module Parametric
     def _reduce(raw_params)
       self.class._allowed_params.each_with_object(ParamsHash.new) do |(key,options),memo|
         policy = Policies::Policy.new((raw_params.has_key?(key) ? raw_params[key] : []), options)
-        policy = policy.wrap(Policies::CoercePolicy)    if options[:coerce]
-        policy = policy.wrap(Policies::NestedPolicy)    if options[:nested]
-        policy = policy.wrap(Policies::MultiplePolicy)  if options[:multiple]
-        policy = policy.wrap(Policies::OptionsPolicy)   if options[:options]
-        policy = policy.wrap(Policies::MatchPolicy)     if options[:match]
-        policy = policy.wrap(Policies::ValidatorPolicy) if options[:validator]
-        policy = policy.wrap(Policies::DefaultPolicy)   if options.has_key?(:default)
-        policy = policy.wrap(Policies::SinglePolicy)    unless options[:multiple]
+        policy = policy.wrap(Policies::CoercePolicy)             if options[:coerce]
+        policy = policy.wrap(Policies::NestedPolicy)             if options[:nested]
+        policy = policy.wrap(Policies::MultiplePolicy)           if options[:multiple]
+        policy = policy.wrap(Policies::OptionsPolicy)            if options[:options]
+        policy = policy.wrap(Policies::RegexpConstraintPolicy)   if options[:match]
+        policy = policy.wrap(Policies::CallableConstraintPolicy) if options[:constraint] && options[:constraint].respond_to?(:call)
+        policy = policy.wrap(Policies::SymbolConstraintPolicy)   if options[:constraint] && options[:constraint].is_a?(Symbol)
+        policy = policy.wrap(Policies::RegexpConstraintPolicy)   if options[:constraint] && options[:constraint].is_a?(Regexp)
+        policy = policy.wrap(Policies::DefaultPolicy)            if options.has_key?(:default)
+        policy = policy.wrap(Policies::SinglePolicy)             unless options[:multiple]
         memo[key] = policy.value unless options[:nullable] && !raw_params.has_key?(key)
       end
     end
